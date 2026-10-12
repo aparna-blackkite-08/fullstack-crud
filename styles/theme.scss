@@ -1,0 +1,19 @@
+/**
+ * Customized version of bootstrap using variables from _variables.scss.
+ * This file is loaded via separate loader thus allowing to use original bootstrap classes (e.g. .btn-default) through out the app.
+ */
+@import "node_modules/bootstrap/scss/functions";
+@import "variables";
+@import "theme-variables";
+@import "node_modules/bootstrap/scss/bootstrap";
+@import "node_modules/react-toastify/dist/ReactToastify.css";
+
+// Bootstrap 4 variable aliases retained by the template's visual compatibility layer.
+$table-cell-padding: $table-cell-padding-y;
+
+@import "mixins";
+@import "base";
+@import "auth";
+@import "overrides";
+@import "general";
+@import "utils";
