@@ -188,6 +188,11 @@ class Header extends React.Component<HeaderProps, HeaderState> {
                         </ActiveLink>
                       </DropdownItem>
                       <DropdownItem className={s.dropdownMenuItem}>
+                        <ActiveLink href={"/photo-upload"}>
+                          <a>Photo Upload</a>
+                        </ActiveLink>
+                      </DropdownItem>
+                      <DropdownItem className={s.dropdownMenuItem}>
                         <ActiveLink href={"/contact"}>
                           <a>Contact Us</a>
                         </ActiveLink>

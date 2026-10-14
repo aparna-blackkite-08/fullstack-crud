@@ -116,7 +116,6 @@ const smokeRoutes = [
   "/about",
   "/about-team",
   "/account",
-  "/profile",
   "/billing",
   "/blog",
   "/blog/article",

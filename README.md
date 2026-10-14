@@ -135,3 +135,8 @@ This template is free to use. Modify it, break it, make it your own. Just don’
 
 > **Questions or feedback?**  
 > Join our [Flatlogic Community Discord](https://discord.gg/flatlogic-community) or visit our [support forum](https://flatlogic.com/forum). We might even reply!
+
+#set a new route steps.
+
+- app\legacy-route.tsx
+- app\[[...slug]]\page.tsx [staticRoutes, staticPageTitles]
