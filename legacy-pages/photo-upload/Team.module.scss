@@ -1,3 +1,4 @@
+
 @use "styles/app" as *;
 
 .teamContainer {
@@ -15,16 +16,133 @@
   color: $text-muted;
 }
 
-.socialIcon {
-  margin-right: 1.5rem;
+.uploadCard {
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+}
+
+.formGroup {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+}
+
+.formControl {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background: #ffffff;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15);
+  }
+}
+
+.helpText {
+  display: block;
+  margin-top: 6px;
+  color: #6c757d;
+  font-size: 12px;
+}
+
+.previewContainer {
+  margin-bottom: 20px;
+}
+
+.previewImage {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #f5f5f5;
+}
+
+.uploadButton,
+.deleteButton {
+  padding: 10px 18px;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.uploadButton {
+  background: #2563eb;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.message {
+  margin-top: 16px;
+  margin-bottom: 0;
+  overflow-wrap: anywhere;
+}
+
+.photoCard {
+  height: calc(100% - 24px);
+  margin-bottom: 24px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
 }
 
 .img {
+  display: block;
   width: 100%;
-  max-height: 270px;
-  @media (max-width: 576px) {
-    width: unset;
-    display: block;
-    margin: 0 auto;
+  height: 220px;
+  object-fit: cover;
+  background: #f5f5f5;
+}
+
+.photoContent {
+  padding: 16px;
+}
+
+.photoDescription {
+  min-height: 48px;
+  color: #6c757d;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.deleteButton {
+  background: #dc3545;
+
+  &:hover {
+    background: #bb2d3b;
+  }
+}
+
+@media (max-width: 576px) {
+  .uploadCard {
+    padding: 16px;
+  }
+
+  .img {
+    height: 200px;
   }
 }

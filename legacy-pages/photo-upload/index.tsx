@@ -1,60 +1,126 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { Container, Row, Col } from "components/compat/bootstrap";
-import person1 from "public/images/e-commerce/team/person1.jpg";
-import person2 from "public/images/e-commerce/team/person2.jpg";
-import person3 from "public/images/e-commerce/team/person3.jpg";
-import person4 from "public/images/e-commerce/team/person4.jpg";
-import person5 from "public/images/e-commerce/team/person5.jpg";
-import person6 from "public/images/e-commerce/team/person6.jpg";
-import person7 from "public/images/e-commerce/team/person7.jpg";
-import person8 from "public/images/e-commerce/team/person8.jpg";
-import googleImg from "public/images/e-commerce/team/google.svg";
-import facebookImg from "public/images/e-commerce/team/facebook.svg";
-import behanceImg from "public/images/e-commerce/team/behance.svg";
-import InstagramWidget from "components/e-commerce/Instagram";
 import s from "./Team.module.scss";
-
 import Head from "components/compat/Head";
 
+interface Photo {
+  _id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+}
+
+const API_URL = "http://localhost:8080/api/photos";
+
 const Index = () => {
+  // Form values
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+
+   // Preview of the selected photo
+  const [preview, setPreview] = useState("");
+
+  // Photos retrieved from the backend
+  const [photos, setPhotos] = useState<Photo[]>([]);
+
+  // Loading and error messages
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  
+  const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setMessage("Please select an image file.");
+      setSelectedPhoto(null);
+      setPreview("");
+      event.target.value = "";
+      return;
+    }
+
+    // Optional size limit: 5 MB
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage("Image size must be 5 MB or less.");
+      setSelectedPhoto(null);
+      setPreview("");
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedPhoto(file);
+    setPreview(URL.createObjectURL(file));
+    setMessage("");
+  };
+  
+  const handleUpload = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!title.trim() || !description.trim() || !selectedPhoto) {
+      setMessage("Please enter a title, description, and select a photo.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("title", title.trim());
+    formData.append("description", description.trim());
+    formData.append("photo", selectedPhoto);
+    
+    try {
+      setLoading(true);
+      setMessage("");
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Photo upload failed.");
+      }
+
+      console.log("Upload response:", result);
+
+      setTitle("");
+      setDescription("");
+      setSelectedPhoto(null);
+      setPreview("");
+
+      setMessage("Photo uploaded successfully.");
+    } catch(error) {
+      console.error("Error uploading photo:", error);
+      setMessage("Photo upload failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  },[preview]);
+
   return (
     <>
       <Head>
-        <title>About Team</title>
+        <title>Photo Upload</title>
         <meta name="viewport" content="initial-scale=1.0, width=device-width" />
-
         <meta
           name="description"
-          content="Beautifully designed web application template built with React and Bootstrap to create modern apps and speed up development"
+          content="Upload, view and manage your photos."
         />
-        <meta name="keywords" content="flatlogic, react templates" />
-        <meta name="author" content="Flatlogic LLC." />
-        <meta charSet="utf-8" />
-
-        <meta
-          property="og:title"
-          content="Flatlogic - React, Vue, Angular and Bootstrap Templates and Admin Dashboard Themes"
-        />
-        <meta property="og:type" content="website" />
-        <meta
-          property="og:url"
-          content="https://flatlogic-ecommerce.herokuapp.com/"
-        />
-        <meta
-          property="og:image"
-          content="https://flatlogic-ecommerce-backend.herokuapp.com/images/blogs/content_image_six.jpg"
-        />
-        <meta
-          property="og:description"
-          content="Beautifully designed web application template built with React and Bootstrap to create modern apps and speed up development"
-        />
-        <meta name="twitter:card" content="summary_large_image" />
-
-        <meta property="fb:app_id" content="712557339116053" />
-
-        <meta property="og:site_name" content="Flatlogic" />
-        <meta name="twitter:site" content="@flatlogic" />
       </Head>
+
       <Container
         className={`${s.teamContainer} mb-5`}
         style={{ marginTop: 32 }}
@@ -62,132 +128,95 @@ const Index = () => {
         <Row>
           <Col xs={12}>
             <h3 className={`${s.pageTitle} fw-bold`}>
-              Meet the team who dares to create differently.
+              Photo Upload
             </h3>
+            <p className={s.mutedText}>
+              Upload your photos with a title and description.
+            </p>
           </Col>
         </Row>
-        <Row className={"mt-5"}>
-          <Col lg={3} md={4} sm={6} xs={12}>
-            <img className={s.img} src={person1} alt="Andreas Walter" />
-            <h6 className={"fw-bold text-center mt-3"}>Andreas Walter</h6>
-            <p className={`${s.mutedText} text-center`}>
-              CEO / Art & Creative Manager
-            </p>
-            <div
-              className={"d-flex justify-content-center"}
-              style={{ marginBottom: 33 }}
-            >
-              <img src={googleImg} className={s.socialIcon} alt="" />
-              <img src={facebookImg} className={s.socialIcon} alt="" />
-              <img src={behanceImg} alt="" />
-            </div>
-          </Col>
-          <Col lg={3} md={4} sm={6} xs={12}>
-            <img className={s.img} src={person2} alt="Phoenix Houston" />
-            <h6 className={"fw-bold text-center mt-3"}>Phoenix Houston</h6>
-            <p className={`${s.mutedText} text-center`}>
-              Founder / World Traveler
-            </p>
-            <div
-              className={"d-flex justify-content-center"}
-              style={{ marginBottom: 33 }}
-            >
-              <img src={googleImg} className={s.socialIcon} alt="" />
-              <img src={facebookImg} className={s.socialIcon} alt="" />
-              <img src={behanceImg} alt="" />
-            </div>
-          </Col>
-          <Col lg={3} md={4} sm={6} xs={12}>
-            <img className={s.img} src={person3} alt="Maria Lennon" />
-            <h6 className={"fw-bold text-center mt-3"}>Maria Lennon </h6>
-            <p className={`${s.mutedText} text-center`}>Design Consultant</p>
-            <div
-              className={"d-flex justify-content-center"}
-              style={{ marginBottom: 33 }}
-            >
-              <img src={googleImg} className={s.socialIcon} alt="" />
-              <img src={facebookImg} className={s.socialIcon} alt="" />
-              <img src={behanceImg} alt="" />
-            </div>
-          </Col>
-          <Col lg={3} md={4} sm={6} xs={12}>
-            <img className={s.img} src={person4} alt="John-James Mosley" />
-            <h6 className={"fw-bold text-center mt-3"}>John-James Mosley</h6>
-            <p className={`${s.mutedText} text-center`}>
-              Digital Marketing Guru
-            </p>
-            <div
-              className={"d-flex justify-content-center"}
-              style={{ marginBottom: 33 }}
-            >
-              <img src={googleImg} className={s.socialIcon} alt="" />
-              <img src={facebookImg} className={s.socialIcon} alt="" />
-              <img src={behanceImg} alt="" />
-            </div>
-          </Col>
-          <Col lg={3} md={4} sm={6} xs={12}>
-            <img className={s.img} src={person5} alt="Daryl Peters" />
-            <h6 className={"fw-bold text-center mt-3"}>Daryl Peters </h6>
-            <p className={`${s.mutedText} text-center`}>
-              Director of Operations
-            </p>
-            <div
-              className={"d-flex justify-content-center"}
-              style={{ marginBottom: 33 }}
-            >
-              <img src={googleImg} className={s.socialIcon} alt="" />
-              <img src={facebookImg} className={s.socialIcon} alt="" />
-              <img src={behanceImg} alt="" />
-            </div>
-          </Col>
-          <Col lg={3} md={4} sm={6} xs={12}>
-            <img className={s.img} src={person6} alt="Arianne Savage" />
-            <h6 className={"fw-bold text-center mt-3"}>Arianne Savage</h6>
-            <p className={`${s.mutedText} text-center`}>
-              Project Manager / Technical Lead
-            </p>
-            <div
-              className={"d-flex justify-content-center"}
-              style={{ marginBottom: 33 }}
-            >
-              <img src={googleImg} className={s.socialIcon} alt="" />
-              <img src={facebookImg} className={s.socialIcon} alt="" />
-              <img src={behanceImg} alt="" />
-            </div>
-          </Col>
-          <Col lg={3} md={4} sm={6} xs={12}>
-            <img className={s.img} src={person7} alt="Anisa Devine" />
-            <h6 className={"fw-bold text-center mt-3"}>Anisa Devine</h6>
-            <p className={`${s.mutedText} text-center`}>
-              Director of Showroom Design
-            </p>
-            <div
-              className={"d-flex justify-content-center"}
-              style={{ marginBottom: 33 }}
-            >
-              <img src={googleImg} className={s.socialIcon} alt="" />
-              <img src={facebookImg} className={s.socialIcon} alt="" />
-              <img src={behanceImg} alt="" />
-            </div>
-          </Col>
-          <Col lg={3} md={4} sm={6} xs={12}>
-            <img className={s.img} src={person8} alt="Ashwin Chaney" />
-            <h6 className={"fw-bold text-center mt-3"}>Ashwin Chaney</h6>
-            <p className={`${s.mutedText} text-center`}>
-              Customer Service Manager
-            </p>
-            <div
-              className={"d-flex justify-content-center"}
-              style={{ marginBottom: 33 }}
-            >
-              <img src={googleImg} className={s.socialIcon} alt="" />
-              <img src={facebookImg} className={s.socialIcon} alt="" />
-              <img src={behanceImg} alt="" />
+
+        {/* Photo upload form */}
+        <Row className="mt-4">
+          <Col lg={8} md={10} xs={12}>
+            <div className={s.uploadCard}>
+              <h5 className="fw-bold mb-4">Add New Photo</h5>
+
+              <form onSubmit={handleUpload}>
+                <div className={s.formGroup}>
+                  <label htmlFor="photoTitle">Photo Title</label>
+                  <input
+                    id="photoTitle"
+                    type="text"
+                    className={s.formControl}
+                    placeholder="Enter photo title"
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    maxLength={100}
+                    required
+                  />
+                </div>
+
+                <div className={s.formGroup}>
+                  <label htmlFor="photoDescription">Description</label>
+                  <textarea
+                    id="photoDescription"
+                    className={s.formControl}
+                    placeholder="Write something about this photo"
+                    value={description}
+                    onChange={(event) =>
+                      setDescription(event.target.value)
+                    }
+                    rows={4}
+                    maxLength={1000}
+                    required
+                  />
+                </div>
+
+                <div className={s.formGroup}>
+                  <label htmlFor="photoFile">Choose Photo</label>
+                  <input
+                    id="photoFile"
+                    type="file"
+                    className={s.formControl}
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    required={!selectedPhoto}
+                  />
+                  <small className={s.helpText}>
+                    Image files only. Maximum size: 5 MB.
+                  </small>
+                </div>
+
+                {preview && (
+                  <div className={s.previewContainer}>
+                    <p className="fw-bold">Photo Preview</p>
+                    <img
+                      src={preview}
+                      alt="Selected photo preview"
+                      className={s.previewImage}
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className={s.uploadButton}
+                  disabled={loading}
+                >
+                  {loading ? "Uploading..." : "Upload Photo"}
+                </button>
+              </form>
+
+              {message && (
+                <p className={s.message} role="status">
+                  {message}
+                </p>
+              )}
             </div>
           </Col>
         </Row>
       </Container>
-      <InstagramWidget />
     </>
   );
 };
