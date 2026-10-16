@@ -33,6 +33,7 @@ const screens: Record<string, Screen> = {
   "/about": lazyScreen(() => import("legacy-pages/about")),
   "/about-team": lazyScreen(() => import("legacy-pages/about-team")),
   "/photo-upload": lazyScreen(() => import("legacy-pages/photo-upload")),
+  "/photos": lazyScreen(() => import("legacy-pages/photos")),
   "/account": lazyScreen(() => import("legacy-pages/account")),
   "/profile": lazyScreen(() => import("legacy-pages/profile")),
   "/billing": lazyScreen(() => import("legacy-pages/billing")),

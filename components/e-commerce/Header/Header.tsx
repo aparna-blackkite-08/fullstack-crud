@@ -277,6 +277,32 @@ class Header extends React.Component<HeaderProps, HeaderState> {
                     </UncontrolledDropdown>
                   </AnimateHeight>
                 </li>
+                <li className={s.nav__menuItem}>
+                  <span
+                    className={s.dropdownItem}
+                    onMouseOver={this.toggleHeightFour}
+                  >
+                    Photo <div className={s.dropdownItemImg} />
+                  </span>
+                  <AnimateHeight
+                    duration={500}
+                    className={`${s.nav__submenu}`}
+                    height={heightFour}
+                  >
+                    <UncontrolledDropdown>
+                      <DropdownItem className={s.dropdownMenuItem}>
+                        <ActiveLink href={"/photo-upload"}>
+                          <a>Photo Upload</a>
+                        </ActiveLink>
+                      </DropdownItem>
+                      <DropdownItem className={s.dropdownMenuItem}>
+                        <ActiveLink href={"/photos"}>
+                          <a>Photos</a>
+                        </ActiveLink>
+                      </DropdownItem>
+                    </UncontrolledDropdown>
+                  </AnimateHeight>
+                </li>
               </ul>
             </nav>
           )}
