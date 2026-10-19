@@ -21,6 +21,7 @@ interface Photo {
   title: string;
   description: string;
   imageUrl: string;
+  uploadedBy?: string;
   likes: string[];
   comments: PhotoComment[];
 }
@@ -74,6 +75,10 @@ const Index = () => {
       setMessage("");
 
       const response = await axios.get<{ photos: Photo[] }>(API_URL);
+
+      console.log("Logged-in user ID:", currentUserId);
+      console.log("Photos received from backend:", response.data.photos);
+      
       setPhotos(response.data.photos);
     } catch (error) {
       console.error("Error fetching photos:", error);
@@ -129,6 +134,21 @@ const Index = () => {
 
   // Delete one photo
   const handleDelete = async (id: string) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setMessage("Please log in to delete your photo.");
+      return;
+    }
+
+    const photo = photos.find((item) => item._id === id);
+
+    // Frontend check: only allow the owner to delete
+    if (!photo || photo.uploadedBy !== currentUserId) {
+      setMessage("You can only delete your own photos.");
+      return;
+    }
+    
     const confirmed = window.confirm(
       "Are you sure you want to delete this photo?"
     );
@@ -141,9 +161,12 @@ const Index = () => {
       setDeletingId(id);
       setMessage("");
 
-      await axios.delete(`${API_URL}/${id}`);
+      await axios.delete(`${API_URL}/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      // Remove the deleted photo from the page immediately
       setPhotos((currentPhotos) =>
         currentPhotos.filter((photo) => photo._id !== id)
       );
@@ -151,7 +174,16 @@ const Index = () => {
       setMessage("Photo deleted successfully.");
     } catch (error) {
       console.error("Error deleting photo:", error);
-      setMessage("Could not delete the photo.");
+      if (axios.isAxiosError(error) && error.response?.status === 403) {
+        setMessage("You can only delete your own photos.");
+      } else if (
+        axios.isAxiosError(error) &&
+        error.response?.status === 401
+      ) {
+        setMessage("Please log in again to delete your photo.");
+      } else {
+        setMessage("Could not delete the photo.");
+      }
     } finally {
       setDeletingId(null);
     }
@@ -199,6 +231,7 @@ const Index = () => {
   const handleAddComment = async (photoId: string) => {
     const token = localStorage.getItem("token");
     const text = (commentInputs[photoId] || "").trim();
+    console.log("text ==> ",text);
 
     if (!token) {
       setMessage("Please log in to add a comment.");
@@ -400,7 +433,7 @@ const Index = () => {
                             {(photo.likes ?? []).length === 1 ? "Like" : "Likes"}
                           </span>
                         </div>
-                        
+
                         {/* Comments section */}
                         <div
                           style={{
@@ -515,18 +548,16 @@ const Index = () => {
                             )}
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDelete(photo._id)
-                          }
-                          disabled={deletingId === photo._id}
-                          className="btn btn-danger"
-                        >
-                          {deletingId === photo._id
-                            ? "Deleting..."
-                            : "Delete"}
-                        </button>
+                        {photo.uploadedBy === currentUserId && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(photo._id)}
+                            disabled={deletingId === photo._id}
+                            className="btn btn-danger"
+                          >
+                            {deletingId === photo._id ? "Deleting..." : "Delete"}
+                          </button>
+                        )}
                       </div>
                     </Col>
                   ))}

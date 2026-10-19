@@ -25,6 +25,8 @@ import axios from "axios";
 import type { RootState } from "@/redux/store";
 import type { User } from "types/domain";
 import type { Dispatch, UnknownAction } from "redux";
+import { isAuthenticated, logoutUser } from "../../../src/utils/auth";
+import { toast } from "react-toastify";
 
 interface HeaderProps {
   currentUser: User | null;
@@ -40,6 +42,7 @@ interface HeaderState {
   heightThree: number | "auto";
   heightFour: number | "auto";
   innerWidth: number;
+  isLoggedIn: boolean;
 }
 
 class Header extends React.Component<HeaderProps, HeaderState> {
@@ -55,6 +58,7 @@ class Header extends React.Component<HeaderProps, HeaderState> {
       // Keep the server and the first client render identical; sync after mount.
       innerWidth: 1024,
       count: 0,
+      isLoggedIn: false,
     };
   }
 
@@ -71,7 +75,7 @@ class Header extends React.Component<HeaderProps, HeaderState> {
   }
 
   override componentDidMount() {
-    this.setState({ innerWidth: window.innerWidth });
+    this.setState({ innerWidth: window.innerWidth, isLoggedIn: isAuthenticated(), });
     window.addEventListener("resize", this.handleResize);
     if (this.props.currentUser) {
       axios
@@ -95,6 +99,25 @@ class Header extends React.Component<HeaderProps, HeaderState> {
   }
 
   handleResize = () => this.setState({ innerWidth: window.innerWidth });
+
+  handleProtectedClick = (
+    event: React.MouseEvent<HTMLAnchorElement>
+  ) => {
+    if (!isAuthenticated()) {
+      event.preventDefault();
+
+      this.setState({ isLoggedIn: false });
+
+      toast.error("Login first");
+      return;
+    }
+
+    this.setState({ isLoggedIn: true });
+  };
+
+  handleLogout = () => {
+    logoutUser();
+  };
 
   toggleHeightOne = () => {
     this.setState({
@@ -292,12 +315,12 @@ class Header extends React.Component<HeaderProps, HeaderState> {
                     <UncontrolledDropdown>
                       <DropdownItem className={s.dropdownMenuItem}>
                         <ActiveLink href={"/photo-upload"}>
-                          <a>Photo Upload</a>
+                          <a onClick={this.handleProtectedClick}>Photo Upload</a>
                         </ActiveLink>
                       </DropdownItem>
                       <DropdownItem className={s.dropdownMenuItem}>
                         <ActiveLink href={"/photos"}>
-                          <a>Photos</a>
+                          <a onClick={this.handleProtectedClick}>Photos</a>
                         </ActiveLink>
                       </DropdownItem>
                     </UncontrolledDropdown>
@@ -356,9 +379,18 @@ class Header extends React.Component<HeaderProps, HeaderState> {
                           <UncontrolledDropdown>
                             <DropdownItem className={s.dropdownMenuItem}>
                               <ActiveLink href={"/profile"}>
-                                <a>Profile</a>
+                                <a onClick={this.handleProtectedClick}>Profile</a>
                               </ActiveLink>
                             </DropdownItem>
+
+                            {this.state.isLoggedIn && (
+                              <DropdownItem
+                                className={s.dropdownMenuItem}
+                                onClick={this.handleLogout}
+                              >
+                                Logout
+                              </DropdownItem>
+                            )}
                           </UncontrolledDropdown>
                         </AnimateHeight>
                       </li>

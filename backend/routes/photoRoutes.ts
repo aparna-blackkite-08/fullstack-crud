@@ -9,9 +9,10 @@ const router = Router();
 router.get("/", getAllPhotos);
 
 // Upload a photo
-router.post("/", upload.single("photo"), (req, res, next) => {
-  next();
-}, uploadPhoto);
+// router.post("/", upload.single("photo"), (req, res, next) => {
+//   next();
+// }, uploadPhoto);
+router.post("/", protect, upload.single("photo"), uploadPhoto);
 
 // Like or unlike a photo (login required)
 router.patch("/:id/like", protect, togglePhotoLike);
@@ -20,6 +21,7 @@ router.patch("/:id/like", protect, togglePhotoLike);
 router.post("/:id/comments", protect, addPhotoComment);
 
 // Delete a photo by ID
-router.delete("/:id", deletePhoto);
+// router.delete("/:id", deletePhoto);
+router.delete("/:id", protect, deletePhoto);
 
 export default router;

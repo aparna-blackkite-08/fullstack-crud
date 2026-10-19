@@ -6,62 +6,87 @@ import { type AuthRequest } from "../middleware/authMiddleware";
 import mongoose from "mongoose";
 
 export const uploadPhoto = async (
-    req: Request,
+    req: AuthRequest,
     res: Response
 ): Promise<void> => {
     let savedFilePath: string | undefined;
 
-    try {
-        const { title, description } = req.body;
-        
-        // Check that all required fields exist
-        if (typeof title !== "string" || !title.trim() || typeof description !== "string" || !description.trim()) {
-            res.status(400).json({
-                message: "Title and description are required.",
-            });
-            return;
-        }
-
-        // Check whether a photo was uploaded
-        if (!req.file) {
-            res.status(400).json({
-                message: "Please select a photo to upload.",
-            });
-            return;
-        }
-
-        savedFilePath = req.file.path;
-
-        // Create the URL used to access the image
-        const imageUrl = `/uploads/${req.file.filename}`;
-
-        // Save photo details in MongoDB
-        const photo = await Photo.create({
-            title: title.trim(),
-            description: description.trim(),
-            imageUrl,
+try {
+      const userId = req.userId;       
+      if (!userId) {
+        res.status(401).json({
+          message: "Please log in first.",
         });
+        return;
+      }
+    
+      const { title, description } = req.body;
+                
+      // Check that all required fields exist
+      if (typeof title !== "string" || !title.trim() || typeof description !== "string" || !description.trim()) {
+          res.status(400).json({
+              message: "Title and description are required.",
+          });
+          return;
+      }
+    
+      // Check whether a photo was uploaded
+      if (!req.file) {
+          res.status(400).json({
+              message: "Please select a photo to upload.",
+          });
+          return;
+      }
 
-        res.status(201).json({
-            message: "Photo uploaded successfully.",
-            photo,
-        });
+      savedFilePath = req.file.path;
+
+      // Create the URL used to access the image
+      const imageUrl = `/uploads/${req.file.filename}`;
+
+      // Save photo details in MongoDB
+      const photo = await Photo.create({
+          title: title.trim(),
+          description: description.trim(),
+          imageUrl,
+          uploadedBy: new mongoose.Types.ObjectId(userId),
+      });
+
+      res.status(201).json({
+          message: "Photo uploaded successfully.",
+          photo,
+      });
     } catch (error) {
-        // Remove the uploaded file if saving its details fails
-        if (savedFilePath) {
-            try {
-                await fs.unlink(savedFilePath);
-            } catch (cleanupError) {
-                console.error("Could not remove uploaded file:", cleanupError);
-            }
+      // Remove the uploaded file if saving its details fails
+    if (savedFilePath) {
+        try {
+            await fs.unlink(savedFilePath);
+        } catch (cleanupError) {
+            console.error("Could not remove uploaded file:", cleanupError);
         }
-        console.error("Photo upload error:", error);
-
-        res.status(500).json({
-            message: "Could not upload the photo.",
-        });
     }
+    console.error("Photo upload error:", error);
+
+    res.status(500).json({
+        message: "Could not upload the photo.",
+    });
+  }
 };
+
+// Get all photos
+// export const getAllPhotos = async (
+//   _req: Request,
+//   res: Response
+// ): Promise<void> => {
+//   try {
+//     // const photos = await Photo.find().sort({ createdAt: -1 });
+//     const photos = await Photo.find().populate("comments.user", "name").sort({ createdAt: -1 });
+
+//     res.status(200).json({ photos });
+//   } catch (error) {
+//     console.error("Error fetching photos:", error);
+//     res.status(500).json({ message: "Could not fetch photos." });
+//   }
+// };
 
 // Get all photos
 export const getAllPhotos = async (
@@ -69,26 +94,62 @@ export const getAllPhotos = async (
   res: Response
 ): Promise<void> => {
   try {
-    // const photos = await Photo.find().sort({ createdAt: -1 });
-    const photos = await Photo.find().populate("comments.user", "name").sort({ createdAt: -1 });
+    const photos = await Photo.find()
+      .populate("comments.user", "name")
+      .sort({ createdAt: -1 });
 
     res.status(200).json({ photos });
   } catch (error) {
     console.error("Error fetching photos:", error);
-    res.status(500).json({ message: "Could not fetch photos." });
+
+    res.status(500).json({
+      message: "Could not fetch photos.",
+      error:
+        error instanceof Error ? error.message : String(error),
+    });
   }
 };
 
 // Delete one photo
 export const deletePhoto = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = req.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        message: "Please log in first.",
+      });
+      return;
+    }
+
+    const { id } = req.params;
+
+    // Validate the photo ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({
+        message: "Invalid photo ID.",
+      });
+      return;
+    }
+
     const photo = await Photo.findById(req.params.id);
 
     if (!photo) {
       res.status(404).json({ message: "Photo not found." });
+      return;
+    }
+
+    // Check whether the logged-in user owns this photo
+    if (
+      !photo.uploadedBy ||
+      photo.uploadedBy.toString() !== userId
+    ) {
+      res.status(403).json({
+        message: "You can only delete your own photos.",
+      });
       return;
     }
 

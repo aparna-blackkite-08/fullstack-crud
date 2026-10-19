@@ -15,6 +15,7 @@ export interface IPhoto extends Document {
   imageUrl: string;
   likes: mongoose.Types.ObjectId[];
   comments: IComment[];
+  uploadedBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -72,6 +73,12 @@ const photoSchema = new Schema<IPhoto>(
     comments: {
       type: [commentSchema],
       default: [],
+    },
+
+    uploadedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
   },
   {
