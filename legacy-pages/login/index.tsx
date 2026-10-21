@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useRouter, type CompatRouter } from "components/compat/router";
 import Link from "components/compat/Link";
 import {
@@ -255,5 +255,15 @@ export async function getServerSideProps(_context: unknown) {
 }
 
 export default function LoginWithRouter() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    console.log(token);
+
+    if (token && Login.isAuthenticated()) {
+      router.replace("/photos");
+    }
+  }, [router]);
   return <Login router={useRouter()} />;
 }

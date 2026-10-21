@@ -1,3 +1,4 @@
+import { useRouter } from "components/compat/router";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Container, Row, Col } from "components/compat/bootstrap";
@@ -14,6 +15,16 @@ interface Photo {
 const API_URL = "http://localhost:8080/api/photos";
 
 const Index = () => {
+  const router = useRouter();
+
+  // Check whether the user is logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.replace("/login");
+    }
+  }, [router]);
+
   // Form values
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -70,14 +81,21 @@ const Index = () => {
     formData.append("title", title.trim());
     formData.append("description", description.trim());
     formData.append("photo", selectedPhoto);
+
+    // const formValues = Object.fromEntries(formData.entries());
+    // console.log(formValues);
     
     try {
       setLoading(true);
       setMessage("");
 
+      const token = localStorage.getItem("token");
       const response = await fetch(API_URL, {
         method: "POST",
         body: formData,
+        headers:{
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const result = await response.json();
@@ -85,8 +103,6 @@ const Index = () => {
       if (!response.ok) {
         throw new Error(result.message || "Photo upload failed.");
       }
-
-      console.log("Upload response:", result);
 
       setTitle("");
       setDescription("");

@@ -548,15 +548,17 @@ const Index = () => {
                             )}
                           </div>
                         </div>
-                        {photo.uploadedBy === currentUserId && (
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(photo._id)}
-                            disabled={deletingId === photo._id}
-                            className="btn btn-danger"
-                          >
-                            {deletingId === photo._id ? "Deleting..." : "Delete"}
-                          </button>
+                        {photo.uploadedBy &&
+                          currentUserId &&
+                          String(photo.uploadedBy) === String(currentUserId) && (
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(photo._id)}
+                              disabled={deletingId === photo._id}
+                              className="btn btn-danger"
+                            >
+                              {deletingId === photo._id ? "Deleting..." : "Delete"}
+                            </button>
                         )}
                       </div>
                     </Col>

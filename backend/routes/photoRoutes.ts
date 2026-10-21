@@ -1,7 +1,15 @@
 
 import { Router } from "express";
 import upload from "../middleware/upload";
-import { uploadPhoto,getAllPhotos,deletePhoto,togglePhotoLike,addPhotoComment } from "../controllers/photoController";
+import {
+  uploadPhoto,
+  getAllPhotos,
+  deletePhoto,
+  togglePhotoLike,
+  addPhotoComment,
+  getMyNotifications,
+  markNotificationAsRead,
+} from "../controllers/photoController";
 import { protect } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -23,5 +31,15 @@ router.post("/:id/comments", protect, addPhotoComment);
 // Delete a photo by ID
 // router.delete("/:id", deletePhoto);
 router.delete("/:id", protect, deletePhoto);
+
+// Get notifications for the logged-in user
+router.get("/notifications", protect, getMyNotifications);
+
+// Mark one notification as read
+router.patch(
+  "/notifications/:notificationId/read",
+  protect,
+  markNotificationAsRead
+);
 
 export default router;

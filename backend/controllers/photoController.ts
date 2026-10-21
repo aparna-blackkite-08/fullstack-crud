@@ -2,6 +2,7 @@ import { type Request, type Response } from "express";
 import fs from "fs/promises";
 import path from "path";
 import Photo from "../models/Photo";
+import Notification from "../models/Notification";
 import { type AuthRequest } from "../middleware/authMiddleware";
 import mongoose from "mongoose";
 
@@ -11,7 +12,7 @@ export const uploadPhoto = async (
 ): Promise<void> => {
     let savedFilePath: string | undefined;
 
-try {
+  try {
       const userId = req.userId;       
       if (!userId) {
         res.status(401).json({
@@ -227,10 +228,25 @@ export const togglePhotoLike = async (
         { _id: id },
         { $addToSet: { likes: userId } }
       );
+
+      // Notify the photo owner, but not if they liked
+      // their own photo.
+      if (photo.uploadedBy.toString() !== userId) {
+        await Notification.create({
+          recipient: photo.uploadedBy,
+          sender: new mongoose.Types.ObjectId(userId),
+          photo: photo._id,
+          type: "like",
+          isRead: false,
+        });
+      }
     }
 
     // Return the latest photo data
-    const updatedPhoto = await Photo.findById(id);
+    const updatedPhoto = await Photo.findById(id).populate(
+      "comments.user",
+      "name"
+    );
 
     if (!updatedPhoto) {
       res.status(404).json({
@@ -328,6 +344,101 @@ export const addPhotoComment = async (
 
     res.status(500).json({
       message: "Could not add comment.",
+    });
+  }
+};
+
+
+/* Get notifications for the logged-in user */
+export const getMyNotifications = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        message: "Please log in first.",
+      });
+      return;
+    }
+
+    const notifications = await Notification.find({
+      recipient: userId,
+    })
+      .populate("sender", "name")
+      .populate("photo", "title imageUrl")
+      .sort({ createdAt: -1 });
+
+    const unreadCount = await Notification.countDocuments({
+      recipient: userId,
+      isRead: false,
+    });
+
+    res.status(200).json({
+      notifications,
+      unreadCount,
+    });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+
+    res.status(500).json({
+      message: "Could not fetch notifications.",
+    });
+  }
+};
+
+/* Mark one notification as read */
+export const markNotificationAsRead = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId;
+    const { notificationId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({
+        message: "Please log in first.",
+      });
+      return;
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(notificationId)) {
+      res.status(400).json({
+        message: "Invalid notification ID.",
+      });
+      return;
+    }
+
+    const notification = await Notification.findOneAndUpdate(
+      {
+        _id: notificationId,
+        recipient: userId,
+      },
+      {
+        $set: { isRead: true },
+      },
+      { new: true }
+    );
+
+    if (!notification) {
+      res.status(404).json({
+        message: "Notification not found.",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Notification marked as read.",
+      notification,
+    });
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+
+    res.status(500).json({
+      message: "Could not update notification.",
     });
   }
 };
