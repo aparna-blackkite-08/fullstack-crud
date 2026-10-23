@@ -59,7 +59,6 @@ export function doInit() {
       });
     } catch (error) {
       Errors.handle(error);
-      console.log("Sdsd");
       dispatch({
         type: AUTH_INIT_ERROR,
         payload: error,
@@ -96,12 +95,11 @@ export function receiveToken(token: string) {
     dispatch({
       type: LOGIN_SUCCESS,
     });
-    redirectTo("/admin/dashboard");
+    redirectTo("/photos");
   };
 }
 
 export function loginUser(creds: Credentials) {
-  console.log(creds);
   return (dispatch: LegacyDispatch) => {
     dispatch({
       type: LOGIN_REQUEST,
@@ -114,7 +112,6 @@ export function loginUser(creds: Credentials) {
       creds.email.length > 0 &&
       creds.password.length > 0
     ) {
-      console.log("res");
       axios
       .post("http://localhost:8080/api/auth/login", creds)
       .then((res) => {

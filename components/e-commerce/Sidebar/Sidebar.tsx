@@ -86,10 +86,6 @@ class Sidebar extends React.Component<SidebarProps> {
                   link: "/about",
                 },
                 {
-                  header: "Profile",
-                  link: "/profile",
-                },
-                {
                   header: "About Team",
                   link: "/about-team",
                 },

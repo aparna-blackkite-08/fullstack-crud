@@ -25,6 +25,25 @@ import axios from "axios";
 import type { RootState } from "@/redux/store";
 import type { User } from "types/domain";
 import type { Dispatch, UnknownAction } from "redux";
+import { isAuthenticated, logoutUser } from "../../../src/utils/auth";
+import { toast, ToastContainer } from "react-toastify";
+
+
+interface NotificationItem {
+  _id: string;
+  sender: {
+    _id: string;
+    name?: string;
+  } | string;
+  photo: {
+    _id: string;
+    title?: string;
+    imageUrl?: string;
+  } | string;
+  type: "like";
+  isRead: boolean;
+  createdAt: string;
+}
 
 interface HeaderProps {
   currentUser: User | null;
@@ -40,9 +59,16 @@ interface HeaderState {
   heightThree: number | "auto";
   heightFour: number | "auto";
   innerWidth: number;
+  isLoggedIn: boolean;
+  notifications: NotificationItem[];
+  unreadCount: number;
+  showNotifications: boolean;
 }
 
 class Header extends React.Component<HeaderProps, HeaderState> {
+  // Timer used to refresh notifications every 30 seconds
+  notificationTimer?: ReturnType<typeof setInterval>;
+
   constructor(props: HeaderProps) {
     super(props);
     this.switchSidebar = this.switchSidebar.bind(this);
@@ -55,6 +81,10 @@ class Header extends React.Component<HeaderProps, HeaderState> {
       // Keep the server and the first client render identical; sync after mount.
       innerWidth: 1024,
       count: 0,
+      isLoggedIn: false,
+      notifications: [],
+      unreadCount: 0,
+      showNotifications: false,
     };
   }
 
@@ -69,9 +99,94 @@ class Header extends React.Component<HeaderProps, HeaderState> {
       this.props.dispatch(changeActiveSidebarItem(paths.join("/")));
     }
   }
+  
+  fetchNotifications = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token || !isAuthenticated()) {
+      this.setState({
+        notifications: [],
+        unreadCount: 0,
+      });
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        "http://localhost:8080/api/photos/notifications",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      this.setState({
+        notifications: response.data.notifications ?? [],
+        unreadCount: response.data.unreadCount ?? 0,
+      });
+    } catch (error) {
+      console.error("Could not fetch notifications:", error);
+    }
+  };
+
+  toggleNotifications = () => {
+    const willOpen = !this.state.showNotifications;
+
+    this.setState({
+      showNotifications: willOpen,
+    });
+
+    if (willOpen) {
+      void this.fetchNotifications();
+    }
+  };
+
+  handleNotificationClick = async (
+    notification: NotificationItem
+  ) => {
+    const token = localStorage.getItem("token");
+
+    try {
+      if (!notification.isRead && token) {
+        await axios.patch(
+          `http://localhost:8080/api/photos/notifications/${notification._id}/read`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        this.setState((prevState) => ({
+          notifications: prevState.notifications.map((item) =>
+            item._id === notification._id
+              ? { ...item, isRead: true }
+              : item
+          ),
+          unreadCount: Math.max(0, prevState.unreadCount - 1),
+        }));
+      }
+
+      this.setState({ showNotifications: false });
+
+      // Open the photos page
+      this.props.router.push("/photos");
+    } catch (error) {
+      console.error("Could not update notification:", error);
+      toast.error("Could not open notification.");
+    }
+  };
 
   override componentDidMount() {
-    this.setState({ innerWidth: window.innerWidth });
+    void this.fetchNotifications();
+
+    this.notificationTimer = setInterval(() => {
+      void this.fetchNotifications();
+    }, 30000);
+
+    this.setState({ innerWidth: window.innerWidth, isLoggedIn: isAuthenticated(), });
     window.addEventListener("resize", this.handleResize);
     if (this.props.currentUser) {
       axios
@@ -92,9 +207,34 @@ class Header extends React.Component<HeaderProps, HeaderState> {
 
   override componentWillUnmount() {
     window.removeEventListener("resize", this.handleResize);
+
+    if (this.notificationTimer) {
+      clearInterval(this.notificationTimer);
+    }
   }
 
   handleResize = () => this.setState({ innerWidth: window.innerWidth });
+
+  handleProtectedClick = (
+  event: React.MouseEvent<HTMLAnchorElement>
+) => {
+  const token = localStorage.getItem("token");
+
+  if (!token || !isAuthenticated()) {
+    event.preventDefault();
+
+    this.setState({ isLoggedIn: false });
+
+    toast.warning("Please login first to access this page.");
+    return;
+  }
+
+  this.setState({ isLoggedIn: true });
+}
+
+  handleLogout = () => {
+    logoutUser();
+  };
 
   toggleHeightOne = () => {
     this.setState({
@@ -137,6 +277,7 @@ class Header extends React.Component<HeaderProps, HeaderState> {
     return (
       <Navbar className={s.header}>
         <Container>
+        <ToastContainer />
           {this.state.innerWidth <= 768 && (
             <Button
               className={"bg-transparent border-0 p-0"}
@@ -185,6 +326,11 @@ class Header extends React.Component<HeaderProps, HeaderState> {
                       <DropdownItem className={s.dropdownMenuItem}>
                         <ActiveLink href={"/about-team"}>
                           <a>About Team</a>
+                        </ActiveLink>
+                      </DropdownItem>
+                      <DropdownItem className={s.dropdownMenuItem}>
+                        <ActiveLink href={"/photo-upload"}>
+                          <a>Photo Upload</a>
                         </ActiveLink>
                       </DropdownItem>
                       <DropdownItem className={s.dropdownMenuItem}>
@@ -272,6 +418,32 @@ class Header extends React.Component<HeaderProps, HeaderState> {
                     </UncontrolledDropdown>
                   </AnimateHeight>
                 </li>
+                <li className={s.nav__menuItem}>
+                  <span
+                    className={s.dropdownItem}
+                    onMouseOver={this.toggleHeightFour}
+                  >
+                    Photo <div className={s.dropdownItemImg} />
+                  </span>
+                  <AnimateHeight
+                    duration={500}
+                    className={`${s.nav__submenu}`}
+                    height={heightFour}
+                  >
+                    <UncontrolledDropdown>
+                      <DropdownItem className={s.dropdownMenuItem}>
+                        <ActiveLink href={"/photo-upload"}>
+                          <a onClick={this.handleProtectedClick}>Photo Upload</a>
+                        </ActiveLink>
+                      </DropdownItem>
+                      <DropdownItem className={s.dropdownMenuItem}>
+                        <ActiveLink href={"/photos"}>
+                          <a onClick={this.handleProtectedClick}>Photos</a>
+                        </ActiveLink>
+                      </DropdownItem>
+                    </UncontrolledDropdown>
+                  </AnimateHeight>
+                </li>
               </ul>
             </nav>
           )}
@@ -325,15 +497,159 @@ class Header extends React.Component<HeaderProps, HeaderState> {
                           <UncontrolledDropdown>
                             <DropdownItem className={s.dropdownMenuItem}>
                               <ActiveLink href={"/profile"}>
-                                <a>Profile</a>
+                                <a onClick={this.handleProtectedClick}>Profile</a>
                               </ActiveLink>
                             </DropdownItem>
+
+                            {this.state.isLoggedIn && (
+                              <DropdownItem
+                                className={s.dropdownMenuItem}
+                                onClick={this.handleLogout}
+                              >
+                                Logout
+                              </DropdownItem>
+                            )}
                           </UncontrolledDropdown>
                         </AnimateHeight>
                       </li>
                     </ul>
                   </nav>
                 </>
+              )}
+              
+              {/* Notification bell */}
+              {this.state.isLoggedIn && (
+                <div
+                  style={{
+                    position: "relative",
+                    display: "inline-block",
+                    marginRight: 8,
+                  }}
+                >
+                  <Button
+                    className="bg-transparent border-0 p-3"
+                    onClick={this.toggleNotifications}
+                    aria-label="Notifications"
+                    style={{ position: "relative" }}
+                  >
+                    <span style={{ fontSize: 13 }}>🔔</span>
+
+                    {this.state.unreadCount > 0 && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          right: 0,
+                          backgroundColor: "#dc3545",
+                          color: "#fff",
+                          borderRadius: "50%",
+                          minWidth: 18,
+                          height: 18,
+                          fontSize: 11,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "0 4px",
+                        }}
+                      >
+                        {this.state.unreadCount > 99
+                          ? "99+"
+                          : this.state.unreadCount}
+                      </span>
+                    )}
+                  </Button>
+
+                  {this.state.showNotifications && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        right: 0,
+                        width: 320,
+                        maxWidth: "85vw",
+                        maxHeight: 350,
+                        overflowY: "auto",
+                        backgroundColor: "#fff",
+                        border: "1px solid #ddd",
+                        borderRadius: 8,
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                        zIndex: 2000,
+                        color: "#222",
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: 12,
+                          fontWeight: "bold",
+                          borderBottom: "1px solid #eee",
+                        }}
+                      >
+                        Notifications
+                        <span style={{ float: "right", color: "#dc3545" }}>
+                          {this.state.unreadCount} unread
+                        </span>
+                      </div>
+
+                      {this.state.notifications.length === 0 ? (
+                        <p style={{ padding: 16, margin: 0 }}>
+                          No notifications yet.
+                        </p>
+                      ) : (
+                        this.state.notifications.map((notification) => {
+                          const senderName =
+                            typeof notification.sender === "object"
+                              ? notification.sender?.name || "User"
+                              : "User";
+
+                          return (
+                            <button
+                              key={notification._id}
+                              type="button"
+                              onClick={() =>
+                                void this.handleNotificationClick(notification)
+                              }
+                              style={{
+                                display: "block",
+                                width: "100%",
+                                padding: 12,
+                                textAlign: "left",
+                                border: "none",
+                                borderBottom: "1px solid #eee",
+                                backgroundColor: notification.isRead
+                                  ? "#fff"
+                                  : "#eef5ff",
+                                cursor: "pointer",
+                                color: "#222",
+                              }}
+                            >
+                              <div>
+                                <strong>{senderName}</strong>{" "}
+                                liked your photo
+                                {!notification.isRead && (
+                                  <span
+                                    style={{
+                                      color: "#0d6efd",
+                                      fontSize: 12,
+                                      marginLeft: 5,
+                                    }}
+                                  >
+                                    • Unread
+                                  </span>
+                                )}
+                              </div>
+
+                              <small style={{ color: "#777" }}>
+                                {new Date(
+                                  notification.createdAt
+                                ).toLocaleString()}
+                              </small>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
               <Link href={"/cart"}>
                 <a>

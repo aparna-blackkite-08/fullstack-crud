@@ -1,6 +1,9 @@
 # dependencies
-/node_modules
+/node_modules/
+/backend/node_modules/
+backend/dist
 /coverage
+backend/uploads
 /playwright-report
 /test-results
 *.tsbuildinfo
