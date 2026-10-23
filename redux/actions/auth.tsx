@@ -95,7 +95,7 @@ export function receiveToken(token: string) {
     dispatch({
       type: LOGIN_SUCCESS,
     });
-    redirectTo("/admin/dashboard");
+    redirectTo("/photos");
   };
 }
 

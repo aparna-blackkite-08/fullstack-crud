@@ -76,8 +76,8 @@ const Index = () => {
 
       const response = await axios.get<{ photos: Photo[] }>(API_URL);
 
-      console.log("Logged-in user ID:", currentUserId);
-      console.log("Photos received from backend:", response.data.photos);
+      // console.log("Logged-in user ID:", currentUserId);
+      // console.log("Photos received from backend:", response.data.photos);
       
       setPhotos(response.data.photos);
     } catch (error) {

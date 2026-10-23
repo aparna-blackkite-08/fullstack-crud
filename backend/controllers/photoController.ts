@@ -129,7 +129,7 @@ export const deletePhoto = async (
     const { id } = req.params;
 
     // Validate the photo ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!id || typeof id !== 'string' || !mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({
         message: "Invalid photo ID.",
       });
@@ -219,13 +219,13 @@ export const togglePhotoLike = async (
     if (alreadyLiked) {
       // Remove this user's like
       await Photo.updateOne(
-        { _id: id },
+        { _id: String(id) as any },
         { $pull: { likes: userId } }
       );
     } else {
       // Add this user's like without creating duplicates
       await Photo.updateOne(
-        { _id: id },
+        { _id: String(id) as any },
         { $addToSet: { likes: userId } }
       );
 
@@ -317,6 +317,7 @@ export const addPhotoComment = async (
     photo.comments.push({
       user: new Photo.base.Types.ObjectId(userId),
       text: text.trim(),
+      createdAt: new Date()
     });
 
     // Save the updated photo in MongoDB
@@ -405,7 +406,7 @@ export const markNotificationAsRead = async (
       return;
     }
 
-    if (!mongoose.Types.ObjectId.isValid(notificationId)) {
+    if (!notificationId || typeof notificationId !== 'string' || !mongoose.Types.ObjectId.isValid(notificationId)) {
       res.status(400).json({
         message: "Invalid notification ID.",
       });
@@ -414,7 +415,7 @@ export const markNotificationAsRead = async (
 
     const notification = await Notification.findOneAndUpdate(
       {
-        _id: notificationId,
+        _id: notificationId as any,
         recipient: userId,
       },
       {

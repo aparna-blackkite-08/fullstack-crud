@@ -190,7 +190,7 @@ export const updateProfile = async (req : AuthRequest, res: Response) => {
 
   } catch (error) {
     // MongoDB duplicate-key error: another user has this email
-    if (error.code === 11000) {
+    if (error && typeof error === 'object' && 'code' in error && (error as any).code === 11000) {
       return res.status(409).json({
         message: "This email is already registered",
       });

@@ -31,7 +31,7 @@ export const protect = (
     }
 
     // Verify the token using the same secret as generateToken()
-    const decoded = jwt.verify(token, secret) as JwtPayload;
+    const decoded = jwt.verify(token as string, secret) as JwtPayload;
 
     if (typeof decoded.userId !== "string") {
       return res.status(401).json({

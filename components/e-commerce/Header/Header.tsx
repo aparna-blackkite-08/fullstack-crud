@@ -26,7 +26,7 @@ import type { RootState } from "@/redux/store";
 import type { User } from "types/domain";
 import type { Dispatch, UnknownAction } from "redux";
 import { isAuthenticated, logoutUser } from "../../../src/utils/auth";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 
 
 interface NotificationItem {
@@ -216,19 +216,21 @@ class Header extends React.Component<HeaderProps, HeaderState> {
   handleResize = () => this.setState({ innerWidth: window.innerWidth });
 
   handleProtectedClick = (
-    event: React.MouseEvent<HTMLAnchorElement>
-  ) => {
-    if (!isAuthenticated()) {
-      event.preventDefault();
+  event: React.MouseEvent<HTMLAnchorElement>
+) => {
+  const token = localStorage.getItem("token");
 
-      this.setState({ isLoggedIn: false });
+  if (!token || !isAuthenticated()) {
+    event.preventDefault();
 
-      toast.error("Login first");
-      return;
-    }
+    this.setState({ isLoggedIn: false });
 
-    this.setState({ isLoggedIn: true });
-  };
+    toast.warning("Please login first to access this page.");
+    return;
+  }
+
+  this.setState({ isLoggedIn: true });
+}
 
   handleLogout = () => {
     logoutUser();
@@ -275,6 +277,7 @@ class Header extends React.Component<HeaderProps, HeaderState> {
     return (
       <Navbar className={s.header}>
         <Container>
+        <ToastContainer />
           {this.state.innerWidth <= 768 && (
             <Button
               className={"bg-transparent border-0 p-0"}
